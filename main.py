@@ -1,12 +1,21 @@
-import os, sys
+import os, sys, argparse
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from function_schemas import *
+from functions.get_file_content import get_file_content
+from functions.get_files_info import get_files_info
+from functions.run_python_file import run_python_file
+from functions.write_file import write_file
 
 load_dotenv()
 api_key = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("prompt", type=str)
+parser.add_argument("--verbose", action="store_true")
+options = parser.parse_args()
 
 if len(sys.argv) == 1:
     print("Error, no prompt provided.")
@@ -26,7 +35,9 @@ All paths you provide should be relative to the working directory. You do not ne
 """
 
 model_name = 'gemini-2.0-flash-001'
-prompt = sys.argv[1]
+prompt = options.prompt
+is_verbose = options.verbose
+
 messages = [
     types.Content(role="user", parts=[types.Part(text=prompt)]),
 ]
@@ -40,19 +51,64 @@ available_functions = types.Tool(
     ]
 )
 
+func_dict = {"get_files_info": get_files_info, 
+             "get_file_content": get_file_content, 
+             "run_python_file": run_python_file, 
+             "write_file": write_file}
+
 response = client.models.generate_content(
       model=model_name, 
       contents=messages,
       config=types.GenerateContentConfig(
             tools=[available_functions], system_instruction=system_prompt))
 
+def call_function(function_call_part, verbose=False):
+    function_name = function_call_part.name
+    function_args = function_call_part.args
+    working_directory = "./calculator"
+
+    if verbose:
+          print(f"Calling function: {function_name}({function_args})")
+    else:
+          print(f" - Calling function: {function_name}")
+    
+    function_args.update({"working_directory": working_directory})
+    function_result = func_dict[function_name](**function_args)
+
+    if function_name not in func_dict:
+         return types.Content(
+              role="tool",
+              parts=[
+                   types.Part.from_function_response(
+                        name=function_name,
+                        response={"error": f"Unknown function: {function_name}"},
+                        )
+                    ],
+                )
+    
+    return types.Content(
+         role="tool",
+         parts=[
+              types.Part.from_function_response(
+                   name=function_name,
+                   response={"result": function_result},
+                   )
+                ],
+            )
+
+
 if len(response.function_calls) > 0:
-      for function_call_part in response.function_calls:
-        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+      try:
+        for function_call_part in response.function_calls:
+            func = call_function(function_call_part, verbose=options.verbose)
+            if is_verbose:
+                 print(f"-> {func.parts[0].function_response.response}")
+      except Exception as e:
+           print(f"Error: {e}")
 else:
      print(response.text)
 
-if len(sys.argv) > 2 and sys.argv[2] == "--verbose":
+if is_verbose:
         print(f"User prompt: {prompt}")
         print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
         print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
