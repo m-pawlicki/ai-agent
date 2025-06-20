@@ -8,12 +8,15 @@ def write_file(working_directory, file_path, content):
     if not joined_path.startswith(root_path):
         return f'Error: Cannot write to "{file_path}" as it is outside the permitted working directory'
     
-    new_dirs = os.path.dirname(joined_path)
-    if not os.path.exists(new_dirs):
-        os.makedirs(new_dirs, exist_ok=True)
+    try:
+        new_dirs = os.path.dirname(joined_path)
+        if not os.path.exists(new_dirs):
+            os.makedirs(new_dirs, exist_ok=True)
 
-    with open(joined_path, "w") as f:
-        f.write(content)
+        with open(joined_path, "w") as f:
+            f.write(content)
 
 
-    return f'Successfully wrote to "{file_path}" ({len(content)} characters written)'
+        return f'Successfully wrote to "{file_path}" ({len(content)} characters written)'
+    except Exception as e:
+        return f"Error: {e}"
