@@ -1,9 +1,12 @@
 import os
 
 def get_file_content(working_directory, file_path):
-
-    root_path = os.path.abspath(working_directory)
-    joined_path = os.path.abspath(os.path.join(root_path, file_path))
+    if working_directory is not None and file_path is not None:
+        root_path = os.path.abspath(working_directory)
+        joined_path = os.path.abspath(os.path.join(root_path, file_path))
+    else:
+        return f"Error: Missing working_directory or file_path."
+    
     MAX_CHARS = 10000
 
     if not joined_path.startswith(root_path):

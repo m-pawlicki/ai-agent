@@ -1,7 +1,7 @@
 import os, sys, argparse
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 from google import genai
-from google.genai import types
+from google.genai import types # type: ignore
 from function_schemas import *
 from functions.get_file_content import get_file_content
 from functions.get_files_info import get_files_info
@@ -37,6 +37,7 @@ All paths you provide should be relative to the working directory. You do not ne
 model_name = 'gemini-2.0-flash-001'
 prompt = options.prompt
 is_verbose = options.verbose
+working_directory = "./calculator"
 
 messages = [
     types.Content(role="user", parts=[types.Part(text=prompt)]),
@@ -56,16 +57,9 @@ func_dict = {"get_files_info": get_files_info,
              "run_python_file": run_python_file, 
              "write_file": write_file}
 
-response = client.models.generate_content(
-      model=model_name, 
-      contents=messages,
-      config=types.GenerateContentConfig(
-            tools=[available_functions], system_instruction=system_prompt))
-
 def call_function(function_call_part, verbose=False):
     function_name = function_call_part.name
     function_args = function_call_part.args
-    working_directory = "./calculator"
 
     if verbose:
           print(f"Calling function: {function_name}({function_args})")
@@ -74,7 +68,6 @@ def call_function(function_call_part, verbose=False):
     
     function_args.update({"working_directory": working_directory})
     function_result = func_dict[function_name](**function_args)
-
     if function_name not in func_dict:
          return types.Content(
               role="tool",
@@ -96,17 +89,36 @@ def call_function(function_call_part, verbose=False):
                 ],
             )
 
+iterations = 0
+while iterations < 21:
 
-if len(response.function_calls) > 0:
+    response = client.models.generate_content(
+      model=model_name, 
+      contents=messages,
+      config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt))
+
+    if response.candidates:
+         for entry in response.candidates:
+              messages.append(entry.content)
+
+    if response.function_calls is not None:
+      
       try:
         for function_call_part in response.function_calls:
             func = call_function(function_call_part, verbose=options.verbose)
+            messages.append(func)
+            iterations += 1
             if is_verbose:
                  print(f"-> {func.parts[0].function_response.response}")
       except Exception as e:
            print(f"Error: {e}")
-else:
-     print(response.text)
+    else:
+        break
+
+    iterations += 1
+
+print(f"Final response: {response.text}")
 
 if is_verbose:
         print(f"User prompt: {prompt}")

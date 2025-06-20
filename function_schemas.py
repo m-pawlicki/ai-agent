@@ -1,4 +1,4 @@
-from google.genai import types
+from google.genai import types # type: ignore
 
 schema_get_files_info = types.FunctionDeclaration(
     name="get_files_info",
@@ -6,6 +6,10 @@ schema_get_files_info = types.FunctionDeclaration(
     parameters=types.Schema(
         type=types.Type.OBJECT,
         properties={
+            "working_directory": types.Schema(
+                type=types.Type.STRING,
+                description="The current working directory.",
+            ),
             "directory": types.Schema(
                 type=types.Type.STRING,
                 description="The directory to list files from, relative to the working directory. If not provided, lists files in the working directory itself.",
@@ -20,6 +24,10 @@ schema_get_file_content = types.FunctionDeclaration(
     parameters=types.Schema(
         type=types.Type.OBJECT,
         properties={
+            "working_directory": types.Schema(
+                type=types.Type.STRING,
+                description="The current working directory.",
+            ),
             "file_path": types.Schema(
                 type=types.Type.STRING,
                 description="The path to the file, relative to the working directory.",
@@ -38,6 +46,10 @@ schema_run_python_file = types.FunctionDeclaration(
     parameters=types.Schema(
         type=types.Type.OBJECT,
         properties={
+            "working_directory": types.Schema(
+                type=types.Type.STRING,
+                description="The current working directory.",
+            ),
             "file_path": types.Schema(
                 type=types.Type.STRING,
                 description="The path to the python file, relative to the working directory.",
@@ -52,6 +64,10 @@ schema_write_file = types.FunctionDeclaration(
     parameters=types.Schema(
         type=types.Type.OBJECT,
         properties={
+            "working_directory": types.Schema(
+                type=types.Type.STRING,
+                description="The current working directory.",
+            ),
             "file_path": types.Schema(
                 type=types.Type.STRING,
                 description="The path to the file, relative to the working directory.",
