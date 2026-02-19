@@ -34,7 +34,7 @@ When a user asks a question or makes a request, make a function call plan. You c
 All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
 """
 
-model_name = 'gemini-2.0-flash-001'
+model_name = 'gemini-2.5-flash'
 prompt = options.prompt
 is_verbose = options.verbose
 working_directory = "./calculator"
